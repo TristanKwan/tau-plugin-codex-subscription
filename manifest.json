@@ -1,0 +1,35 @@
+{
+  "id": "tau.codex-subscription",
+  "name": "Codex 订阅",
+  "description": "通过本机 OpenAI 兼容接口在 Tau 聊天中使用 ChatGPT 订阅。",
+  "categories": [
+    "ai"
+  ],
+  "version": "0.1.0",
+  "formatVersion": 2,
+  "apiVersion": 1,
+  "platform": "desktop",
+  "format": "cjs",
+  "main": "main.js",
+  "minAppVersion": "0.59.4",
+  "backend": {
+    "entry": "backend.js",
+    "runtime": "node",
+    "apiVersion": 1,
+    "scope": "application",
+    "activation": "app-ready",
+    "lifetime": "persistent",
+    "reason": "在回环地址提供聊天接口，保存订阅登录状态并连接 OpenAI。在 Windows 上读取系统网络代理配置。",
+    "systemAccess": [
+      "network",
+      "filesystem",
+      "process"
+    ],
+    "tools": [
+      {
+        "id": "reg",
+        "command": "reg.exe"
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "tau.codex-subscription",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "build": "node build.mjs",
+    "install:local": "node install-local.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@tau/plugins": "npm:@xiongtao.xt/tau-plugins@0.59.0",
+    "adm-zip": "0.5.16",
+    "esbuild": "0.25.12",
+    "undici": "6.23.0"
+  }
+}

@@ -1,0 +1,35 @@
+.tau-codex-settings .tau-codex-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.tau-codex-actions button {
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.tau-codex-actions button:first-child {
+  background: #944300;
+  color: white;
+}
+.tau-codex-actions button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.tau-codex-actions button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+.codex-quota {border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:10px;padding:16px;margin:16px 0}
+.codex-quota header,.codex-quota-window > div {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.codex-quota h3 {margin:0;font-weight:600}
+.codex-quota small,.codex-quota-window span {opacity:.72}
+.codex-quota button {border:1px solid color-mix(in srgb,currentColor 30%,transparent);border-radius:8px;padding:5px 14px;cursor:pointer}
+.codex-quota-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:8px}
+.codex-quota-window {margin-top:14px;padding:12px;border-radius:8px;background:color-mix(in srgb,currentColor 5%,transparent);font-variant-numeric:tabular-nums}
+.codex-quota-window progress {display:block;width:100%;height:5px;appearance:none;margin:8px 0;border:none;border-radius:8px;overflow:hidden}
+.codex-quota-window progress::-webkit-progress-bar {background:color-mix(in srgb,currentColor 20%,transparent)}
+.codex-quota-window progress::-webkit-progress-value {background:#476cff;border-radius:8px}
