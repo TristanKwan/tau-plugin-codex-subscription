@@ -1,13 +1,29 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { createInterface } from "node:readline";
-import { Readable } from "node:stream";
 
 const base = "https://chatgpt.com/backend-api/codex";
 function invalid(message,status=400) { return Object.assign(Error(message),{status}); }
 function json(res,status,data) {
   res.writeHead(status,{"Content-Type":"application/json","Cache-Control":"no-store"});
   res.end(JSON.stringify(data));
+}
+function catalogModel(model) {
+  const id=model.slug.trim();
+  const label=[model.display_name,model.name].find(value=>typeof value==="string" && value.trim())?.trim();
+  // Tau drops name when it equals id, but its model rows currently render
+  // only name. Give otherwise unnamed models a distinct display label.
+  const name=label && label!==id?label:"Codex · "+id;
+  const positive=value=>Number.isSafeInteger(value) && value>0;
+  const contextWindow=[model.context_window,model.max_context_window].find(positive)??32768;
+  const maxTokens=Math.min(positive(model.max_output_tokens)?model.max_output_tokens:8192,contextWindow);
+  const modalities=model.input_modalities?.filter(type=>type==="text" || type==="image");
+  const input=modalities?.length?modalities:["text"];
+  const reasoning=Array.isArray(model.supported_reasoning_levels) && model.supported_reasoning_levels.length>0;
+  return {id,object:"model",owned_by:"openai",name,display_name:name,
+    // Tau's service-model importer reads these OpenRouter/OpenAI extensions.
+    context_window:contextWindow,max_output_tokens:maxTokens,
+    architecture:{input_modalities:input},supported_parameters:reasoning?["reasoning"]:[],
+    contextWindow,maxTokens,input,reasoning};
 }
 function convert(body) {
   if(!body || typeof body.model!=="string" || !Array.isArray(body.messages)) throw invalid("需要 model 和 messages");
@@ -30,15 +46,34 @@ function convert(body) {
     } else throw invalid("不支持的角色");
   }
   return {model:body.model,input,instructions:instructions.join("\n\n")||"You are a helpful assistant.",stream:true,store:false,
-    tools:(body.tools??[]).map(t=>{if(t.type!=="function") throw invalid("不支持的工具"); return {type:"function",...t.function}}),
+    // Chat Completions defaults to non-strict tools. Responses may normalize
+    // an omitted strict flag and require optional arguments such as cursor.
+    tools:(body.tools??[]).map(t=>{if(t.type!=="function") throw invalid("不支持的工具"); return {type:"function",...t.function,strict:t.function.strict??false}}),
     tool_choice:typeof body.tool_choice==="object"?{type:"function",name:body.tool_choice.function.name}:body.tool_choice??"auto",
     ...(body.reasoning_effort?{reasoning:{effort:body.reasoning_effort}}:{})};
 }
 async function* events(body) {
-  let lines=[];
-  for await(const line of createInterface({input:Readable.fromWeb(body),crlfDelay:Infinity})) {
-    if(line.startsWith("data:")) lines.push(line.slice(5).trimStart());
-    if(!line && lines.length){const data=lines.join("\n"); lines=[]; if(data!=="[DONE]") yield JSON.parse(data);}
+  const reader=body.getReader(), decoder=new TextDecoder();
+  let pending="", lines=[];
+  try {
+    while(true) {
+      const {value,done}=await reader.read();
+      pending+=done?decoder.decode():decoder.decode(value,{stream:true});
+      let end;
+      while((end=pending.indexOf("\n"))!==-1) {
+        const line=pending.slice(0,end).replace(/\r$/,"");
+        pending=pending.slice(end+1);
+        if(line.startsWith("data:")) lines.push(line.slice(5).trimStart());
+        if(!line && lines.length){const data=lines.join("\n");lines=[];if(data!=="[DONE]") yield JSON.parse(data);}
+      }
+      if(done) break;
+    }
+  } finally {
+    // A completed response or client disconnect can abort the upstream before
+    // it closes. Keep cancellation inside the reader's promise lifecycle;
+    // readline otherwise emits an unhandled error after its iterator exits.
+    await reader.cancel().catch(()=>{});
+    reader.releaseLock();
   }
 }
 async function chat(req,res,headers,signal,request) {
@@ -94,11 +129,7 @@ export function bridge(account,request=fetch) {
         const r=await request(base+"/models?client_version=0.171.0",{headers:await account.headers(),signal:stop.signal});
         if(!r.ok) throw invalid("读取模型失败 HTTP "+r.status,r.status);
         const data=await r.json();
-        json(res,200,{object:"list",data:data.models.filter(m=>m.slug && m.visibility!=="hide").map(m=>({id:m.slug,object:"model",owned_by:"openai",
-          contextWindow:m.context_window ?? m.max_context_window,
-          maxTokens:m.max_output_tokens,
-          input:m.input_modalities?.filter(type=>type==="text" || type==="image"),
-          reasoning:Array.isArray(m.supported_reasoning_levels) ? m.supported_reasoning_levels.length>0 : undefined}))});
+        json(res,200,{object:"list",data:data.models.filter(m=>typeof m.slug==="string" && m.slug.trim() && m.visibility!=="hide").map(catalogModel)});
       }else if(req.url==="/v1/chat/completions" && req.method==="POST"){
         await chat(req,res,await account.headers(),stop.signal,request);
       }else throw invalid("接口不存在",404);

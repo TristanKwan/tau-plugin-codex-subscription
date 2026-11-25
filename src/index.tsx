@@ -33,13 +33,23 @@ function Preferences({context}) {
   }
   return <section className="tau-codex-settings">
     <h3>{logged ? "已连接 ChatGPT 订阅" : "连接 ChatGPT 订阅"}</h3>
-    <p>{logged ? "将账号模型添加到 Tau，即可在聊天中选择。" : "登录 OpenAI 后即可连接账号。"}</p>
+    <p>{logged ? "请在 Tau 的大语言模型设置中手动配置服务商和模型，再在聊天中选择。" : "登录 OpenAI 后即可连接账号。"}</p>
     <div className="tau-codex-actions">{Object.entries(logged
-      ? {models:"添加到 Tau 模型选择器",logout:"退出登录"}
+      ? {logout:"退出登录"}
       : {browser:"浏览器登录",login:"使用设备码登录",...(code?{confirm:"确认设备授权"}:{})}
     ).map(([id,label])=><button type="button" key={id} disabled={busy} onClick={()=>run(id)}>{label}</button>)}</div>
     {logged&&<Quota context={context}/>}
-    {logged&&<details><summary>手动配置服务商</summary><p>选择 OpenAI Chat Completions，Base URL 填 <code>http://127.0.0.1:17653/v1</code>。</p><div className="tau-codex-actions"><button disabled={busy} onClick={()=>run("key")}>复制本机 API Key</button></div></details>}
+    {logged&&<section aria-label="手动配置服务商">
+      <h4>手动配置服务商</h4>
+      <ol>
+        <li>打开 Tau「设置 → 大语言模型 → 服务商与模型」，点击「添加服务商 → 其他服务商」，名称可填「Codex 订阅」，接口类型选择「OpenAI 兼容（最常见）」。</li>
+        <li>Base URL 填写 <code>http://127.0.0.1:17653/v1</code>。</li>
+        <li>点击下方按钮复制本机 API Key，粘贴到服务商的 API Key 输入框。</li>
+        <li>在 Tau 中获取模型列表或手动添加模型 ID，保存后在聊天中选择对应模型。账号新增模型后，也在 Tau 中重新获取或手动添加。</li>
+      </ol>
+      <div className="tau-codex-actions"><button type="button" disabled={busy} onClick={()=>run("key")}>复制本机 API Key</button></div>
+      <p>服务商和模型配置由 Tau 保存。插件不会直接读取或改写 Tau 的全局设置文件。</p>
+    </section>}
     {url&&<p><a style={{textDecoration:"underline"}} href={url} target="_blank" rel="noreferrer">打开 OpenAI 登录页面</a></p>}
     {code&&<p><a href="https://auth.openai.com/codex/device" target="_blank" rel="noreferrer">打开 OpenAI 设备授权页面</a>　设备码 <strong>{code}</strong></p>}
     <p role="status" style={{whiteSpace:"pre-line"}}>{message}</p></section>

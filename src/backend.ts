@@ -2,7 +2,6 @@ import {quotaSnapshot} from "./quota.js";
 import {defineBackend} from "@tau/plugins/backend";
 import {createNetwork} from "./network.js";
 import {account} from "./account.js";
-import {addModels} from "./tau-models.js";
 import {bridge} from "./bridge.js";
 export default defineBackend({create:()=>({
   async activate(ctx){
@@ -13,7 +12,7 @@ export default defineBackend({create:()=>({
     ctx.register({dispose(){server.close();server.closeAllConnections()}});
     let busy=false;
     ctx.rpc.register("settings.action",{
-      input:{parse(action){if(!["status","key","browser","login","confirm","logout","models","quota"].includes(action)) throw Error("未知操作");return action}},
+      input:{parse(action){if(!["status","key","browser","login","confirm","logout","quota"].includes(action)) throw Error("未知操作");return action}},
       output:{parse(value){if(typeof value!=="string") throw Error("结果无效");return value}}
     },async action=>{
       if(action==="key") return user.key;
@@ -28,7 +27,6 @@ export default defineBackend({create:()=>({
       busy=true;
       try{
         if(action==="browser") return await user.browserLogin();
-        if(action==="models") return await addModels(user.key);
         if(action==="login") return await user.login();
         if(action==="confirm"){await user.confirm();return "已登录"}
         if(action==="logout"){await user.logout();return "已退出"}
